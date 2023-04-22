@@ -8,7 +8,7 @@
 #include "texture.h"
 #include "lighting_technique.h"
 #include "glut-backend.h"
-#include "mesh.h"
+#include "mesh25.h"
 #include "skybox.h"
 
 #define WINDOW_WIDTH  1920

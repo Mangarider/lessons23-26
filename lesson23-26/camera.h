@@ -51,7 +51,7 @@ private:
     Vector2i m_mousePos;
 };
 
-const static float STEP_SCALE = 0.1f;
+const static float STEP_SCALE = 0.5f;
 const static int MARGIN = 10;
 
 Camera::Camera(int WindowWidth, int WindowHeight)
