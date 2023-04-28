@@ -1,36 +1,37 @@
-#include <math.h>
+/*#include <math.h>
 #include <glew.h>
 #include <freeglut.h>
 
+#include "engine_common.h"
 #include "util.h"
 #include "pipeline.h"
 #include "camera.h"
 #include "texture.h"
 #include "lighting_technique.h"
 #include "glut-backend.h"
-#include "mesh25.h"
-#include "skybox.h"
+#include "mesh.h"
+#include "billboard_list.h"
 
-#define WINDOW_WIDTH  1920
-#define WINDOW_HEIGHT 1200
+#define WINDOW_WIDTH  1280
+#define WINDOW_HEIGHT 1024
 
 
-class Main : public ICallbacks
+class Tutorial27 : public ICallbacks
 {
 public:
 
-    Main()
+    Tutorial27()
     {
         m_pLightingTechnique = NULL;
         m_pGameCamera = NULL;
-        m_pTankMesh = NULL;
-        m_scale = 0.0f;
-        m_pSkyBox = NULL;
+        m_pGround = NULL;
+        m_pTexture = NULL;
+        m_pNormalMap = NULL;
 
         m_dirLight.AmbientIntensity = 0.2f;
         m_dirLight.DiffuseIntensity = 0.8f;
         m_dirLight.Color = Vector3f(1.0f, 1.0f, 1.0f);
-        m_dirLight.Direction = Vector3f(1.0f, -1.0f, 0.0f);
+        m_dirLight.Direction = Vector3f(1.0f, 0.0f, 0.0f);
 
         m_persProjInfo.FOV = 60.0f;
         m_persProjInfo.Height = WINDOW_HEIGHT;
@@ -40,19 +41,20 @@ public:
     }
 
 
-    virtual ~Main()
+    ~Tutorial27()
     {
         SAFE_DELETE(m_pLightingTechnique);
         SAFE_DELETE(m_pGameCamera);
-        SAFE_DELETE(m_pTankMesh);
-        SAFE_DELETE(m_pSkyBox);
+        SAFE_DELETE(m_pGround);
+        SAFE_DELETE(m_pTexture);
+        SAFE_DELETE(m_pNormalMap);
     }
 
 
     bool Init()
     {
-        Vector3f Pos(0.0f, 1.0f, -20.0f);
-        Vector3f Target(0.0f, 0.0f, 1.0f);
+        Vector3f Pos(0.0f, 1.0f, -1.0f);
+        Vector3f Target(0.0f, -0.5f, 1.0f);
         Vector3f Up(0.0, 1.0f, 0.0f);
 
         m_pGameCamera = new Camera(WINDOW_WIDTH, WINDOW_HEIGHT, Pos, Target, Up);
@@ -66,23 +68,30 @@ public:
 
         m_pLightingTechnique->Enable();
         m_pLightingTechnique->SetDirectionalLight(m_dirLight);
-        m_pLightingTechnique->SetTextureUnit(0);
+        m_pLightingTechnique->SetColorTextureUnit(0);
+        m_pLightingTechnique->SetNormalMapTextureUnit(2);
 
-        m_pTankMesh = new Mesh();
+        m_pGround = new Mesh();
 
-        if (!m_pTankMesh->LoadMesh("jeep.obj")) {
+        if (!m_pGround->LoadMesh("quad.obj")) {
             return false;
         }
 
-        m_pSkyBox = new SkyBox(m_pGameCamera, m_persProjInfo);
+        if (!m_billboardList.Init("monster_hellknight.png")) {
+            return false;
+        }
 
-        if (!m_pSkyBox->Init(".",
-            "sp3right.jpg",
-            "sp3left.jpg",
-            "sp3top.jpg",
-            "sp3bot.jpg",
-            "sp3front.jpg",
-            "sp3back.jpg")) {
+        m_pTexture = new Texture(GL_TEXTURE_2D, "bricks.jpg");
+
+        if (!m_pTexture->Load()) {
+            return false;
+        }
+
+        m_pTexture->Bind(COLOR_TEXTURE_UNIT);
+
+        m_pNormalMap = new Texture(GL_TEXTURE_2D, "normal_map.jpg");
+
+        if (!m_pNormalMap->Load()) {
             return false;
         }
 
@@ -99,25 +108,25 @@ public:
     virtual void RenderSceneCB()
     {
         m_pGameCamera->OnRender();
-        m_scale += 0.05f;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         m_pLightingTechnique->Enable();
 
+        m_pTexture->Bind(COLOR_TEXTURE_UNIT);
+        m_pNormalMap->Bind(NORMAL_TEXTURE_UNIT);
+
         Pipeline p;
-        p.Scale(0.1f, 0.1f, 0.1f);
-        p.Rotate(0.0f, m_scale, 0.0f);
-        p.WorldPos(0.0f, -5.0f, 3.0f);
+        p.Scale(20.0f, 20.0f, 1.0f);
+        p.Rotate(90.0f, 0.0, 0.0f);
         p.SetCamera(m_pGameCamera->GetPos(), m_pGameCamera->GetTarget(), m_pGameCamera->GetUp());
         p.SetPerspectiveProj(m_persProjInfo);
 
         m_pLightingTechnique->SetWVP(p.GetWVPTrans());
         m_pLightingTechnique->SetWorldMatrix(p.GetWorldTrans());
-        m_pTankMesh->Render();
+        m_pGround->Render();
 
-        m_pSkyBox->Render();
-
+        m_billboardList.Render(p.GetVPTrans(), m_pGameCamera->GetPos());
         glutSwapBuffers();
     }
 
@@ -153,11 +162,12 @@ private:
 
     LightingTechnique* m_pLightingTechnique;
     Camera* m_pGameCamera;
-    float m_scale;
     DirectionalLight m_dirLight;
-    Mesh* m_pTankMesh;
-    SkyBox* m_pSkyBox;
+    Mesh* m_pGround;
+    Texture* m_pTexture;
+    Texture* m_pNormalMap;
     PersProjInfo m_persProjInfo;
+    BillboardList m_billboardList;
 };
 
 
@@ -165,11 +175,11 @@ int main(int argc, char** argv)
 {
     GLUTBackendInit(argc, argv);
 
-    if (!GLUTBackendCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 32, false, "Tutorial 25")) {
+    if (!GLUTBackendCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 32, false, "Tutorial 27")) {
         return 1;
     }
 
-    Main* pApp = new Main();
+    Tutorial27* pApp = new Tutorial27();
 
     if (!pApp->Init()) {
         return 1;
@@ -180,4 +190,4 @@ int main(int argc, char** argv)
     delete pApp;
 
     return 0;
-}
+}*/

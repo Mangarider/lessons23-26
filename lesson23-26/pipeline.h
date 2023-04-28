@@ -55,7 +55,7 @@ public:
 
 
     const Matrix4f& GetWVPTrans();
-
+    const Matrix4f& GetVPTrans();
     const Matrix4f& GetWorldTrans();
 
 
@@ -79,6 +79,7 @@ private:
     } m_camera;
     PersProjInfo m_persProjInfo;
     Matrix4f m_WVPtransformation;
+    Matrix4f m_VPTtransformation;
     Matrix4f m_WorldTransformation;
 };
 
@@ -108,5 +109,17 @@ const Matrix4f& Pipeline::GetWVPTrans()
     return m_WVPtransformation;
 }
 
+
+const Matrix4f& Pipeline::GetVPTrans()
+{
+    Matrix4f CameraTranslationTrans, CameraRotateTrans, PersProjTrans;
+
+    CameraTranslationTrans.InitTranslationTransform(-m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
+    CameraRotateTrans.InitCameraTransform(m_camera.Target, m_camera.Up);
+    PersProjTrans.InitPersProjTransform(m_persProjInfo);
+
+    m_VPTtransformation = PersProjTrans * CameraRotateTrans * CameraTranslationTrans;
+    return m_VPTtransformation;
+}
 #endif	/* PIPELINE_H */
 

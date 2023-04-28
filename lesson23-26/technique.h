@@ -5,6 +5,8 @@
 #include <list>
 #include <stdio.h>
 #include <string.h>
+#include "util.h"
+#include <assert.h>
 
 #define INVALID_UNIFORM_LOCATION 0xFFFFFFFF
 
@@ -20,17 +22,37 @@ protected:
     bool AddShader(GLenum ShaderType, const char* pShaderText);
     bool Finalize();
     GLint GetUniformLocation(const char* pUniformName);
+    GLint GetProgramParam(GLint param);
+
+    GLuint m_shaderProg;
 
 private:
-    GLuint m_shaderProg;
     typedef std::list<GLuint> ShaderObjList;
     ShaderObjList m_shaderObjList;
 };
+#define INVALID_UNIFORM_LOCATION 0xFFFFFFFF
+static const char* pVSName = "VS";
+static const char* pGSName = "GS";
+static const char* pFSName = "FS";
 
+const char* ShaderType2ShaderName(GLuint Type)
+{
+    switch (Type) {
+    case GL_VERTEX_SHADER:
+        return pVSName;
+    case GL_GEOMETRY_SHADER:
+        return pGSName;
+    case GL_FRAGMENT_SHADER:
+        return pFSName;
+    default:
+        assert(0);
+    }
+
+    return NULL;
+}
 Technique::Technique() {
     m_shaderProg = 0;
 }
-
 Technique::~Technique() {
     for (ShaderObjList::iterator it = m_shaderObjList.begin(); it != m_shaderObjList.end(); it++) {
         glDeleteShader(*it);
@@ -95,7 +117,6 @@ bool Technique::Finalize() {
     GLchar ErrorLog[1024] = { 0 };
 
     glLinkProgram(m_shaderProg);
-
     glGetProgramiv(m_shaderProg, GL_LINK_STATUS, &Success);
     if (Success == 0) {
         glGetProgramInfoLog(m_shaderProg, sizeof(ErrorLog), NULL, ErrorLog);

@@ -3,10 +3,15 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
 const float M_PI = 3.14159f;
+float RandomFloat() {
+    float Max = RAND_MAX;
+    return ((float)rand() / Max);
+};
 struct PersProjInfo
 {
     float FOV;
@@ -93,6 +98,30 @@ struct Vector3f
         printf("(%.02f, %.02f, %.02f", x, y, z);
     }
 };
+struct Vector4f
+{
+    float x;
+    float y;
+    float z;
+    float w;
+
+    Vector4f()
+    {
+    }
+
+    Vector4f(float _x, float _y, float _z, float _w)
+    {
+        x = _x;
+        y = _y;
+        z = _z;
+        w = _w;
+    }
+
+    void Print() const
+    {
+        printf("(%.02f, %.02f, %.02f, %.02f)", x, y, z, w);
+    }
+};
 
 
 inline Vector3f operator+(const Vector3f& l, const Vector3f& r)
@@ -156,7 +185,12 @@ public:
 
         return Ret;
     }
-
+    void Print()
+    {
+        for (int i = 0; i < 4; i++) {
+            printf("%f %f %f %f\n", m[i][0], m[i][1], m[i][2], m[i][3]);
+        }
+    }
     void InitScaleTransform(float ScaleX, float ScaleY, float ScaleZ);
     void InitRotateTransform(float RotateX, float RotateY, float RotateZ);
     void InitTranslationTransform(float x, float y, float z);
